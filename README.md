@@ -70,9 +70,9 @@ El formato **AVIF** es mucho más eficiente para la web, reduciendo el tamaño d
 
 - **Formato:** AVIF
 - **Quality:** 50
-- **Effort:** 4 (valor por defecto)
+- **Effort:** 4
 
-Esto reduce significativamente el peso de las imágenes.
+Estos valores son los **predeterminados de Squoosh**, y permiten reducir bastante el peso de las imágenes manteniendo buena calidad.
 
 > En el futuro se podría **automatizar la optimización de imágenes en build time** usando alguna librería.
 
