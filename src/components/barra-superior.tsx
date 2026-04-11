@@ -22,17 +22,33 @@ const OPCIONES_TEMA = [
 ]
 
 export function BarraSuperior() {
-  const { tema, cambiarTema } = useTema()
+  // const { tema, cambiarTema } = useTema()
   const { idioma, t, cambiarIdioma } = useIdioma()
 
   // AnimatedThemeToggler
+  const { tema, temaActivo, cambiarTema } = useTema()
   const ejecutarCambioTemaConAnimacion = useCallback(
     (
       nuevoTema: (typeof OPCIONES_TEMA)[number]['id'],
       event?: React.MouseEvent<HTMLElement>
     ) => {
+      if (nuevoTema === tema) return
+
+      const temaVisualActual = temaActivo
+      const temaVisualNuevo =
+        nuevoTema === 'auto'
+          ? window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'oscuro'
+            : 'claro'
+          : nuevoTema
+
       const aplicarCambio = () => {
         cambiarTema(nuevoTema)
+      }
+
+      if (temaVisualNuevo === temaVisualActual) {
+        aplicarCambio()
+        return
       }
 
       const source = event?.currentTarget as HTMLElement | undefined
@@ -81,7 +97,7 @@ export function BarraSuperior() {
         )
       })
     },
-    [cambiarTema]
+    [cambiarTema, tema, temaActivo]
   )
 
   const temaActual =
