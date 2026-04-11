@@ -11,6 +11,10 @@ import { IDIOMAS_DISPONIBLES, type Idioma } from '@/lib/traducciones'
 import { ChevronDown, Monitor, Moon, Sun } from 'lucide-react'
 import { useIdioma, useTema } from './proveedores'
 
+// AnimatedThemeToggler
+import { useCallback } from 'react'
+import { flushSync } from 'react-dom'
+
 const OPCIONES_TEMA = [
   { id: 'claro' as const, icono: Sun, temaColor: 'temaClaro' as const },
   { id: 'oscuro' as const, icono: Moon, temaColor: 'temaOscuro' as const },
@@ -20,6 +24,65 @@ const OPCIONES_TEMA = [
 export function BarraSuperior() {
   const { tema, cambiarTema } = useTema()
   const { idioma, t, cambiarIdioma } = useIdioma()
+
+  // AnimatedThemeToggler
+  const ejecutarCambioTemaConAnimacion = useCallback(
+    (
+      nuevoTema: (typeof OPCIONES_TEMA)[number]['id'],
+      event?: React.MouseEvent<HTMLElement>
+    ) => {
+      const aplicarCambio = () => {
+        cambiarTema(nuevoTema)
+      }
+
+      const source = event?.currentTarget as HTMLElement | undefined
+
+      if (!source) {
+        aplicarCambio()
+        return
+      }
+
+      const { top, left, width, height } = source.getBoundingClientRect()
+      const x = left + width / 2
+      const y = top + height / 2
+
+      const viewportWidth = window.visualViewport?.width ?? window.innerWidth
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight
+
+      const maxRadius = Math.hypot(
+        Math.max(x, viewportWidth - x),
+        Math.max(y, viewportHeight - y)
+      )
+
+      const startViewTransition = document.startViewTransition?.bind(document)
+
+      if (typeof startViewTransition !== 'function') {
+        aplicarCambio()
+        return
+      }
+
+      const transition = startViewTransition(() => {
+        flushSync(aplicarCambio)
+      })
+
+      transition?.ready?.then(() => {
+        document.documentElement.animate(
+          {
+            clipPath: [
+              `circle(0px at ${x}px ${y}px)`,
+              `circle(${maxRadius}px at ${x}px ${y}px)`,
+            ],
+          },
+          {
+            duration: 400,
+            easing: 'ease-in-out',
+            pseudoElement: '::view-transition-new(root)',
+          }
+        )
+      })
+    },
+    [cambiarTema]
+  )
 
   const temaActual =
     OPCIONES_TEMA.find((o) => o.id === tema) || OPCIONES_TEMA[0]
@@ -46,7 +109,9 @@ export function BarraSuperior() {
             return (
               <DropdownMenuItem
                 key={opcion.id}
-                onClick={() => cambiarTema(opcion.id)}
+                // AnimatedThemeToggler
+                onClick={(e) => ejecutarCambioTemaConAnimacion(opcion.id, e)}
+                // onClick={() => cambiarTema(opcion.id)}
                 className={
                   tema === opcion.id ? 'bg-accent text-accent-foreground' : ''
                 }
