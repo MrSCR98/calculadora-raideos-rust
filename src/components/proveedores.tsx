@@ -18,7 +18,7 @@ import {
 // ========================================
 // TEMA
 // ========================================
-type Tema = 'claro' | 'oscuro' | 'auto'
+export type Tema = 'claro' | 'oscuro' | 'auto'
 
 interface ContextoTema {
   tema: Tema

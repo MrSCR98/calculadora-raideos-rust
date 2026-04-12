@@ -1,5 +1,6 @@
 'use client'
 
+import { Tema, useIdioma, useTema } from '@/components/proveedores'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -9,10 +10,10 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { IDIOMAS_DISPONIBLES, type Idioma } from '@/lib/traducciones'
 import { ChevronDown, Monitor, Moon, Sun } from 'lucide-react'
-import { useIdioma, useTema } from './proveedores'
 
 // AnimatedThemeToggler
-import { useCallback } from 'react'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { useCallback, type MouseEvent } from 'react'
 import { flushSync } from 'react-dom'
 
 const OPCIONES_TEMA = [
@@ -27,11 +28,54 @@ export function BarraSuperior() {
 
   // AnimatedThemeToggler
   const { tema, temaActivo, cambiarTema } = useTema()
+  const isMobile = useIsMobile()
+
+  const animarTransicionCircular = useCallback(
+    (source: HTMLElement, aplicarCambio: () => void, duracion: number) => {
+      const { top, left, width, height } = source.getBoundingClientRect()
+      const x = left + width / 2
+      const y = top + height / 2
+
+      const viewportWidth = window.visualViewport?.width ?? window.innerWidth
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight
+
+      const maxRadius = Math.hypot(
+        Math.max(x, viewportWidth - x),
+        Math.max(y, viewportHeight - y)
+      )
+
+      const startViewTransition = document.startViewTransition?.bind(document)
+
+      if (typeof startViewTransition !== 'function') {
+        aplicarCambio()
+        return
+      }
+
+      const transition = startViewTransition(() => {
+        flushSync(aplicarCambio)
+      })
+
+      transition?.ready?.then(() => {
+        document.documentElement.animate(
+          {
+            clipPath: [
+              `circle(0px at ${x}px ${y}px)`,
+              `circle(${maxRadius}px at ${x}px ${y}px)`,
+            ],
+          },
+          {
+            duration: duracion,
+            easing: 'ease-in-out',
+            pseudoElement: '::view-transition-new(root)',
+          }
+        )
+      })
+    },
+    []
+  )
+
   const ejecutarCambioTemaConAnimacion = useCallback(
-    (
-      nuevoTema: (typeof OPCIONES_TEMA)[number]['id'],
-      event?: React.MouseEvent<HTMLElement>
-    ) => {
+    (nuevoTema: Tema, event?: MouseEvent<HTMLElement>) => {
       if (nuevoTema === tema) return
 
       const temaVisualActual = temaActivo
@@ -52,56 +96,21 @@ export function BarraSuperior() {
       }
 
       const source = event?.currentTarget as HTMLElement | undefined
-
       if (!source) {
         aplicarCambio()
         return
       }
 
-      const { top, left, width, height } = source.getBoundingClientRect()
-      const x = left + width / 2
-      const y = top + height / 2
-
-      const viewportWidth = window.visualViewport?.width ?? window.innerWidth
-      const viewportHeight = window.visualViewport?.height ?? window.innerHeight
-
-      const maxRadius = Math.hypot(
-        Math.max(x, viewportWidth - x),
-        Math.max(y, viewportHeight - y)
-      )
-
-      const startViewTransition = document.startViewTransition?.bind(document)
-
-      if (typeof startViewTransition !== 'function') {
-        aplicarCambio()
-        return
-      }
-
-      const transition = startViewTransition(() => {
-        flushSync(aplicarCambio)
-      })
-
-      transition?.ready?.then(() => {
-        document.documentElement.animate(
-          {
-            clipPath: [
-              `circle(0px at ${x}px ${y}px)`,
-              `circle(${maxRadius}px at ${x}px ${y}px)`,
-            ],
-          },
-          {
-            duration: 400,
-            easing: 'ease-in-out',
-            pseudoElement: '::view-transition-new(root)',
-          }
-        )
-      })
+      const duracion = isMobile
+        ? 300 // movil
+        : 400 // ordenador
+      animarTransicionCircular(source, aplicarCambio, duracion)
     },
-    [cambiarTema, tema, temaActivo]
+    [tema, temaActivo, cambiarTema, isMobile, animarTransicionCircular]
   )
 
   const ejecutarCambioIdiomaConAnimacion = useCallback(
-    (nuevoIdioma: Idioma, event?: React.MouseEvent<HTMLElement>) => {
+    (nuevoIdioma: Idioma, event?: MouseEvent<HTMLElement>) => {
       if (nuevoIdioma === idioma) return
 
       const aplicarCambio = () => {
@@ -109,52 +118,17 @@ export function BarraSuperior() {
       }
 
       const source = event?.currentTarget as HTMLElement | undefined
-
       if (!source) {
         aplicarCambio()
         return
       }
 
-      const { top, left, width, height } = source.getBoundingClientRect()
-      const x = left + width / 2
-      const y = top + height / 2
-
-      const viewportWidth = window.visualViewport?.width ?? window.innerWidth
-      const viewportHeight = window.visualViewport?.height ?? window.innerHeight
-
-      const maxRadius = Math.hypot(
-        Math.max(x, viewportWidth - x),
-        Math.max(y, viewportHeight - y)
-      )
-
-      const startViewTransition = document.startViewTransition?.bind(document)
-
-      if (typeof startViewTransition !== 'function') {
-        aplicarCambio()
-        return
-      }
-
-      const transition = startViewTransition(() => {
-        flushSync(aplicarCambio)
-      })
-
-      transition?.ready?.then(() => {
-        document.documentElement.animate(
-          {
-            clipPath: [
-              `circle(0px at ${x}px ${y}px)`,
-              `circle(${maxRadius}px at ${x}px ${y}px)`,
-            ],
-          },
-          {
-            duration: 400,
-            easing: 'ease-in-out',
-            pseudoElement: '::view-transition-new(root)',
-          }
-        )
-      })
+      const duracion = isMobile
+        ? 300 // movil
+        : 400 // ordenador
+      animarTransicionCircular(source, aplicarCambio, duracion)
     },
-    [idioma, cambiarIdioma]
+    [idioma, cambiarIdioma, isMobile, animarTransicionCircular]
   )
 
   const temaActual =
@@ -209,6 +183,7 @@ export function BarraSuperior() {
             <ChevronDown className="h-3 w-3" />
           </Button>
         </DropdownMenuTrigger>
+
         <DropdownMenuContent align="end" className="space-y-1 p-1">
           {IDIOMAS_DISPONIBLES.map((opcion) => (
             <DropdownMenuItem
