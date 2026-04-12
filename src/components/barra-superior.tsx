@@ -100,6 +100,63 @@ export function BarraSuperior() {
     [cambiarTema, tema, temaActivo]
   )
 
+  const ejecutarCambioIdiomaConAnimacion = useCallback(
+    (nuevoIdioma: Idioma, event?: React.MouseEvent<HTMLElement>) => {
+      if (nuevoIdioma === idioma) return
+
+      const aplicarCambio = () => {
+        cambiarIdioma(nuevoIdioma)
+      }
+
+      const source = event?.currentTarget as HTMLElement | undefined
+
+      if (!source) {
+        aplicarCambio()
+        return
+      }
+
+      const { top, left, width, height } = source.getBoundingClientRect()
+      const x = left + width / 2
+      const y = top + height / 2
+
+      const viewportWidth = window.visualViewport?.width ?? window.innerWidth
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight
+
+      const maxRadius = Math.hypot(
+        Math.max(x, viewportWidth - x),
+        Math.max(y, viewportHeight - y)
+      )
+
+      const startViewTransition = document.startViewTransition?.bind(document)
+
+      if (typeof startViewTransition !== 'function') {
+        aplicarCambio()
+        return
+      }
+
+      const transition = startViewTransition(() => {
+        flushSync(aplicarCambio)
+      })
+
+      transition?.ready?.then(() => {
+        document.documentElement.animate(
+          {
+            clipPath: [
+              `circle(0px at ${x}px ${y}px)`,
+              `circle(${maxRadius}px at ${x}px ${y}px)`,
+            ],
+          },
+          {
+            duration: 400,
+            easing: 'ease-in-out',
+            pseudoElement: '::view-transition-new(root)',
+          }
+        )
+      })
+    },
+    [idioma, cambiarIdioma]
+  )
+
   const temaActual =
     OPCIONES_TEMA.find((o) => o.id === tema) || OPCIONES_TEMA[0]
   const IconoTema = temaActual.icono
@@ -156,7 +213,11 @@ export function BarraSuperior() {
           {IDIOMAS_DISPONIBLES.map((opcion) => (
             <DropdownMenuItem
               key={opcion.id}
-              onClick={() => cambiarIdioma(opcion.id as Idioma)}
+              // onClick={() => cambiarIdioma(opcion.id as Idioma)}
+              // AnimatedThemeToggler
+              onClick={(e) =>
+                ejecutarCambioIdiomaConAnimacion(opcion.id as Idioma, e)
+              }
               className={
                 idioma === opcion.id ? 'bg-accent text-accent-foreground' : ''
               }
